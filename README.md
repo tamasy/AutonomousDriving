@@ -2,7 +2,7 @@
 自動運転の学習に関するPrj.です。
 
 ## ✅ よく使うコマンド
-### 🎯 AIチャレンジコード実行
+### 🎯 AIチャレンジコード実行 2025
 #### 大会用リポジトリのクローン
 ```bash
 cd (任意のフォルダ)
@@ -38,16 +38,91 @@ cd data/aichallenge-2025_shio/aichallenge-2025
 ./create_submit_file.bash
 ```
 
-### 🎯 関連ツール
-#### aichallenge-trajectory-editor
+### 🎯 AIチャレンジコード実行 2026
+
+セットアップ手順は以下参照 <br>
+https://automotiveaichallenge.github.io/aichallenge-documentation-racingkart/setup/introduction.html
+
+#### Autoware/ROS 2 overlay をビルド
 ```bash
-./run_simulator.bash awsim
-./run_autoware.bash awsim
+cd data/aichallenge/2026/aichallenge-racingkart
+make autoware-build
 ```
+
+#### AWSIM + Autoware を開発モードで起動
+```bash
+make dev
+```
+
+#### コンテナ停止
+```bash
+make down
+```
+
+### 🎯 関連ツール
+#### trajectoryのポイントを追加・削除したい
+```bash
+# standalone-trajectory-editor
+cd
+cd data/aichallenge/2026/standalone-trajectory-editor/build
+./trajectory_editor
+```
+#### 軌道最適化ツール
+```bash
+# global_racetrajectory_optimization
+cd data/aichallenge/2026/global_racetrajectory_optimization
+python3 main_globaltraj.py
+```
+
+### 🎯 関連ツール 自作
+#### クォータニオンを再計算したい
+```bash
+# 以下フォルダへpythonファイルを格納する
+# 2025環境はこちら
+cd aichallenge/workspace/src/aichallenge_submit/simple_trajectory_generator/data
+# 2026環境はこちら
+cd data/aichallenge/2026/aichallenge-racingkart/aichallenge/tools
+
+# 再計算したいcsvを指定する
+python3 update_quaternions.py raceline_2026_mincurv6_ReQx.csv
+```
+
+#### PurePursuit -> MPC 変換ツール
+```bash
+cd data/aichallenge/2026/aichallenge-racingkart/aichallenge/memo
+python3 pp2mpc.py
+python3 mpc2pp.py
+```
+
 #### パラスタ値＆最新走行結果自動転機
 ```bash
-cd data/aichallenge-2025_shio
+cd data/aichallenge-2025
 python3 lap_time_tracker_v2.py
+```
+
+### 🎯 Optuna Pure Pursuit パラメータ自動調整
+```bash
+# Docker起動してから以下実行
+cd /aichallenge/workspace/src/aichallenge_submit/aichallenge_submit_launch/scripts
+
+# 新規実行
+python3 optimize_pure_pursuit.py
+
+# 途中から再開
+python3 optimize_pure_pursuit.py --resume
+
+# デフォルト値に戻す
+python3 optimize_pure_pursuit.py --restore-defaults
+
+```
+
+### 🎯 Optuna Pure Pursuit ダッシュボードで確認
+```bash
+# Docker起動してから以下実行
+cd /aichallenge/workspace
+pip3 install optuna-dashboard
+optuna-dashboard sqlite:///pure_pursuit_study.db
+
 ```
 
 ### 🎯 git
