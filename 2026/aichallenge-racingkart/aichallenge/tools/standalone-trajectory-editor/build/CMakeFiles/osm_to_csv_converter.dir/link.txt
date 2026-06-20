@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/osm_to_csv_converter.dir/osm_to_csv_converter_autogen/mocs_compilation.cpp.o CMakeFiles/osm_to_csv_converter.dir/osm_to_csv_converter.cpp.o CMakeFiles/osm_to_csv_converter.dir/src/utils/osm_parser.cpp.o -o osm_to_csv_converter 

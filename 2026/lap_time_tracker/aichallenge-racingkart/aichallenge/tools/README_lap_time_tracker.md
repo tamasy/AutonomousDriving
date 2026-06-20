@@ -109,22 +109,46 @@ make down                   # 手動で停止
 
 ファイル: `output/lap_time_results.xlsx`
 
-| 行 | 内容 |
+| 列 | 内容 |
 |---|---|
-| 1 | 列タイトル（実行日時 or 任意ラベル） |
-| 2 | total_laps |
-| 3 | total_time |
-| 4 | best_lap_time |
-| 5〜10 | lap_1_time 〜 lap_6_time |
-| 11 | trajectory_csv（使用した軌道ファイル名） |
-| 12 | control_method |
-| 13〜22 | simple_mpc パラメータ |
-| 23〜30 | simple_lqr パラメータ |
-| 31〜 | section_A_time, section_B_time, ... |
+| A | ファイル名ラベル（`config.yaml` / `reference.launch.xml`） |
+| B | グループラベル（control / pp / mpc / lqr / map など） |
+| C | パラメータ名（`Parameter` ヘッダー行、および各行のラベル） |
+| D〜 | 各走行の値（右に追記されていく） |
+
+行構成（C列のラベルで決まる）：
+
+| C列ラベル | A列 | 内容 |
+|---|---|---|
+| `Parameter` | `file` | 列タイトル（実行日時 or 任意ラベル） |
+| `trajectory_csv` | `reference.launch.xml` | 使用した軌道ファイル名 |
+| 各パラメータ名 | `reference.launch.xml` | `reference.launch.xml` から読み出した値 |
+| `mpc.*` 形式のキー | `config.yaml` | `config.yaml` から読み出した値（ドット区切りフラットキー） |
+| `total_laps` 〜 `best_lap_time` | — | ラップ集計 |
+| `lap_1_time` 〜 `lap_6_time` | — | 各周ラップタイム |
+| `section_A_time` 〜 | — | セクションタイム |
+
+### パラメータ書き込みの仕組み
+
+`lap_time_tracker.py` は **xlsx の C列を上から走査し、書かれているラベルをキーとして参照元ファイルから値を取得して書き込む**。パラメータ名はコードに一切定義していない。
+
+| C列ラベル | 動作 |
+|---|---|
+| `trajectory_csv` | `reference.launch.xml` の `csv_path` のファイル名 |
+| `total_laps` / `total_time` / `best_lap_time` | `result-details.json` から取得 |
+| `lap_1_time` 〜 `lap_6_time` | `result-details.json` から取得（出現順に割り当て） |
+| `section_*_time` | `result-section.json` から取得。存在しない section は末尾に自動追加 |
+| その他のラベル | A列が `config.yaml` → `config.yaml` から取得（ドット区切りキー、例: `mpc.v_max`）<br>A列が空または `reference.launch.xml` → `reference.launch.xml` から取得<br>A列が空でもキーが `config.yaml` にあれば自動的に `config.yaml` を参照 |
+
+- 参照元ファイルに該当キーが存在しない場合は `null` と記載
+- `csv_path_accel_map` / `csv_path_brake_map` はファイル名のみ記載（フルパスは省略）
+- リスト値（例: `Q`, `R`）は文字列として記載（例: `[1000000.0, 100000000.0, 850000.0]`）
+- **記録対象の追加・削除は xlsx の C列を直接編集するだけでよい。コードの変更は不要**
+- 新規 xlsx 作成時はヘッダー行（1行目）のみ生成。行ラベルは xlsx 側で管理する
 
 - 列は右に追記されていく（既存データを上書きしない）
 - セクションラベルは走行順に A, B, C, ... と自動付番（コース上の位置順ではなく通過順）
-- C列以降の列幅は 3cm 固定
+- D列以降の列幅は 3cm 固定
 
 ---
 
