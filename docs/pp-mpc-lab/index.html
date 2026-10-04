@@ -34,11 +34,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .logo{width:36px;height:36px;border-radius:10px;background:var(--ref);display:grid;place-items:center;flex:none}
 header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.02em}
 header p{margin:0;font-size:12px;color:var(--sub)}
-main{max-width:1180px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
-@media (min-width:960px){
-  main{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start;padding:20px}
-  .stage{grid-row:span 3;position:sticky;top:76px}
-}
+main{max-width:760px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.right{display:grid;gap:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
 .card-h{padding:14px 16px 10px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid var(--line)}
 .card-h h2{margin:0;font-size:18px;line-height:1.3}
@@ -47,8 +44,10 @@ main{max-width:1180px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-temp
 .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
 .pp .dot,.dot.pp{background:var(--pp)} .mpc .dot,.dot.mpc{background:var(--mpc)}
 .canvas-wrap{position:relative;background:var(--bg)}
-#track{display:block;width:100%;aspect-ratio:4/5;touch-action:pan-y}
-@media (min-width:960px){#track{aspect-ratio:auto;height:min(68vh,640px)}}
+.canvas-wrap{aspect-ratio:4/5}
+#track{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:pan-y}
+.chart-wrap{position:relative;height:220px}
+#chart{position:absolute;inset:0;display:block;width:100%;height:100%}
 .hud{position:absolute;right:12px;bottom:12px;background:var(--ref);color:var(--bg);border-radius:14px;padding:8px 14px;font-family:var(--mono)}
 .hud b{font-size:26px;font-weight:500} .hud span{font-size:12px;opacity:.8;margin-left:4px}
 .legend{position:absolute;left:12px;top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:12px;display:grid;gap:2px}
@@ -79,12 +78,84 @@ input[type=range]{width:100%;height:30px;accent-color:var(--ref)}
 .gauge .v{font-family:var(--mono);font-size:22px;line-height:1.1}
 .gauge .v small{font-size:12px;color:var(--sub)}
 .gauge .e{font-size:11px;color:var(--sub);font-family:var(--mono);white-space:nowrap}
-#chart{display:block;width:100%;height:220px}
 .stats{display:grid;grid-template-columns:1fr;font-size:12px;color:var(--sub);padding:8px 16px 14px;gap:4px 12px}
 .stats div{font-family:var(--mono)}
-footer{max-width:1180px;margin:0 auto;padding:4px 20px 28px;font-size:12px;color:var(--sub)}
-footer p{max-width:72ch;margin:0}
+.notes{padding:12px 16px;font-size:12px;color:var(--sub);line-height:1.65}
+.notes p{margin:0}
+.notes b{color:var(--ink)}
+
+/* ===== A4 landscape sheet (wide screens & print) ===== */
+@media (min-width:1100px) and (min-height:620px){
+  body{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+  header{position:static;flex:none;padding:8px 16px}
+  main{
+    --h:calc(100dvh - 64px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    --hh:min(var(--h), calc((100vw - 24px) * 210 / 297));
+    height:var(--hh); width:calc(var(--hh) * 297 / 210);
+    max-width:none; margin:auto; padding:0; overflow:hidden;
+    grid-template-columns:minmax(0,1.05fr) minmax(0,0.92fr) minmax(0,1.03fr);
+    grid-template-rows:minmax(0,1fr) auto; gap:10px; font-size:13px;
+  }
+  .stage{grid-column:1;grid-row:1/3;display:flex;flex-direction:column;min-height:0}
+  .stage .canvas-wrap{flex:1;min-height:0;aspect-ratio:auto}
+  .steer{grid-column:2;grid-row:1;display:flex;flex-direction:column;min-height:0}
+  .steer .chart-wrap{flex:1;min-height:120px;height:auto}
+  .notes{grid-column:2;grid-row:2}
+  .right{grid-column:3;grid-row:1/3;display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto}
+  .right>.card{flex:none}
+  .card{border-radius:14px}
+  .card-h{padding:9px 14px 7px}
+  .card-h h2{font-size:16px}
+  .card-h small{font-size:11px}
+  .toolbar{padding:8px 12px;gap:6px}
+  .seg button,.btn{font-size:12px;padding:4px 9px;min-height:28px}
+  .picker{padding-bottom:6px}
+  .picker-h{padding:0 12px 6px;font-size:13px}
+  .picker .courses{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-columns:auto;gap:6px;padding:2px 12px 4px;overflow:visible}
+  .picker .course{flex-direction:column;padding:3px 2px;gap:0;font-size:11px;min-height:0;justify-content:center}
+  .picker .course svg{width:100%;height:22px;flex:none}
+  .gauge canvas{width:56px;height:38px}
+  .ctl{padding:6px 14px 4px}
+  .ctl label{font-size:13px}
+  input[type=range]{height:24px}
+  .ends{font-size:10.5px;margin:-6px 0 4px}
+  .body{padding:9px 14px 2px;font-size:12.5px;line-height:1.6}
+  .body p{margin:0 0 5px}
+  .formula{font-size:12px;padding:4px 10px;margin:0 0 4px}
+  .hint{margin:0 14px 10px;padding:6px 10px;font-size:12px;line-height:1.5}
+  .hint b{font-size:12px}
+  .gauge{padding:8px 10px}
+  .gauge .v{font-size:20px}
+  .stats{padding:6px 14px 10px;font-size:11px;gap:2px}
+  .hud{right:10px;bottom:10px;padding:5px 11px}
+  .hud b{font-size:20px}
+  .notes{padding:9px 14px;font-size:11px;line-height:1.6}
+}
+@page{size:A4 landscape;margin:8mm}
+@media print{
+  body{height:auto;overflow:visible;background:#fff}
+  header{position:static}
+  main{width:281mm;height:auto;aspect-ratio:297/210;max-width:none;margin:0;padding:0;
+    grid-template-columns:1.12fr 1fr .95fr;grid-template-rows:1fr auto;gap:3mm;font-size:10pt}
+  .stage{grid-column:1;grid-row:1/3;display:flex;flex-direction:column}
+  .stage .canvas-wrap{flex:1;aspect-ratio:auto}
+  .steer{grid-column:2;grid-row:1;display:flex;flex-direction:column}
+  .steer .chart-wrap{flex:1;height:auto}
+  .notes{grid-column:2;grid-row:2}
+  .right{grid-column:3;grid-row:1/3}
+  .toolbar,.ctl .ends{display:none}
+  .card{break-inside:avoid}
+}
 .dim{opacity:.45}
+.picker{padding:0 0 12px}
+.picker-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:0 16px 8px;font-size:14px}
+.picker-h span{font-size:12px;color:var(--sub)}
+.courses{display:grid;grid-auto-flow:column;grid-auto-columns:96px;gap:8px;overflow-x:auto;padding:2px 16px 6px;scroll-snap-type:x proximity}
+.course{font:inherit;font-size:12px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:6px 4px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;scroll-snap-align:start;min-height:44px}
+.course svg{width:100%;height:44px;color:var(--ref)}
+.course[aria-pressed="true"]{border-color:var(--ref);background:var(--card);box-shadow:0 0 0 1.5px var(--ref) inset}
+.course span{white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>
 </head>
@@ -122,6 +193,10 @@ footer p{max-width:72ch;margin:0}
         <button data-cam="all" aria-pressed="false">コース全体</button>
       </div>
     </div>
+    <div class="picker">
+      <div class="picker-h"><b>コース</b><span id="courseNote"></span></div>
+      <div class="courses" id="courses" role="group" aria-label="コース選択"></div>
+    </div>
     <div class="ctl" style="padding-top:0">
       <label for="spd">車速 <output id="spdO">30 km/h</output></label>
       <input id="spd" type="range" min="15" max="45" step="1" value="30">
@@ -129,13 +204,13 @@ footer p{max-width:72ch;margin:0}
     </div>
   </section>
 
-  <section class="card" aria-label="ハンドルの動き">
+  <section class="card steer" aria-label="ハンドルの動き">
     <div class="card-h"><div><small>タイヤ切れ角と横ずれ</small><h2>ハンドルの動き</h2></div><span class="tag">直近12秒</span></div>
     <div class="gauges">
       <div class="gauge pp" id="gPP"><canvas id="gaugePP" width="168" height="112"></canvas><div><span class="tag pp"><i class="dot"></i>PP</span><div class="v" id="vPP">0.0<small>°</small></div><div class="e" id="ePP">ずれ 0.00 m</div></div></div>
       <div class="gauge mpc" id="gMPC"><canvas id="gaugeMPC" width="168" height="112"></canvas><div><span class="tag mpc"><i class="dot"></i>MPC</span><div class="v" id="vMPC">0.0<small>°</small></div><div class="e" id="eMPC">ずれ 0.00 m</div></div></div>
     </div>
-    <canvas id="chart" aria-label="切れ角と横ずれの時系列グラフ"></canvas>
+    <div class="chart-wrap"><canvas id="chart" aria-label="切れ角と横ずれの時系列グラフ"></canvas></div>
     <div class="stats">
       <div id="sPP">PP　平均ずれ –</div>
       <div id="sMPC">MPC 平均ずれ –</div>
@@ -143,10 +218,14 @@ footer p{max-width:72ch;margin:0}
     </div>
   </section>
 
+  <section class="card notes" aria-label="モデルの前提">
+  <p><b>モデルの前提</b>　運動学的二輪モデル（ホイールベース 1.05 m）、ステアリング一次遅れ 0.12 s、制御周期 50 ms、車速一定。MPCは制約なしの線形MPC（予測刻み 0.1 s、ステア遅れ込みのモデル）を毎周期、最小二乗で解いています。コースはどれも閉じた周回路で、8の字は交差点を直進します。教材向けの簡易モデルで、実車のタイヤ横すべりや入力制約は入れていません。</p>
+  </section>
+  <div class="right">
   <section class="card pp" aria-label="Pure Pursuit">
     <div class="card-h"><div><small>幾何学で決める</small><h2>Pure Pursuit</h2></div><span class="tag"><i class="dot pp"></i>オレンジの車</span></div>
     <div class="body">
-      <p>コース上で「注視距離 Ld」だけ先の点を選び、その点を通る円弧に乗るようにハンドルを切ります。画面の点線の円が注視距離、細い線が目標点です。</p>
+      <p>コース上で Ld だけ先の点を目標にし、そこを通る円弧に乗るようハンドルを切ります。点線の円が Ld、太い線が描く円弧です。</p>
       <div class="formula">δ = atan( 2·L·sin α / Ld )</div>
     </div>
     <div class="ctl">
@@ -160,7 +239,7 @@ footer p{max-width:72ch;margin:0}
   <section class="card mpc" aria-label="MPC">
     <div class="card-h"><div><small>予測して最適化する</small><h2>MPC（モデル予測制御）</h2></div><span class="tag"><i class="dot mpc"></i>緑の車</span></div>
     <div class="body">
-      <p>車の動きのモデルで数秒先までを予測し、「コースからのずれ」と「ハンドル操作の大きさ」の合計が最小になる操作の列を毎回計算します。使うのは最初の一手だけで、次の周期でまた計算し直します。画面の点列が予測した軌跡です。</p>
+      <p>車のモデルで数秒先まで予測し、「ずれ」と「操作の大きさ」の合計が最小になる操作列を毎周期計算します。使うのは最初の一手だけ。点列が予測軌跡です。</p>
       <div class="formula">min Σ ( Q·ずれ² + R·Δ操舵² )</div>
     </div>
     <div class="ctl">
@@ -173,11 +252,11 @@ footer p{max-width:72ch;margin:0}
     </div>
     <p class="hint" id="hintMPC"></p>
   </section>
+  </div>
+
 </main>
 
-<footer>
-  <p>モデルの前提：運動学的二輪モデル（ホイールベース 1.05 m）、ステアリング一次遅れ 0.12 s、制御周期 50 ms、車速一定。MPCは制約なしの線形MPC（予測刻み 0.1 s、ステア遅れ込みのモデル）を毎周期、最小二乗で解いています。教材向けの簡易モデルで、実車のタイヤ横すべりや入力制約は入れていません。</p>
-</footer>
+
 <script>
 // ===== simulation core =====
 const WB = 1.05;          // wheelbase [m]
@@ -338,8 +417,23 @@ function plantStep(car, v) {
   car.yaw = wrap(car.yaw + v * Math.tan(car.delta) / WB * DT);
   car.dist += v * DT;
 }
+// ===== course library =====
+const genParam = (f, n) => Array.from({ length: n }, (_, i) => f(2 * Math.PI * i / n));
+const COURSES = [
+  { id: 's', name: 'S字コース', note: '左右の切り返しが続く',
+    pts: [...Array.from({ length: 21 }, (_, i) => { const x = i * 6; return [x, 12 * Math.sin(2 * Math.PI * x / 60) * Math.sin(Math.PI * x / 120) ** 2]; }), [134, 4], [142, 18], [137, 34], [120, 42], [90, 44], [60, 44], [30, 44], [2, 42], [-14, 32], [-16, 14], [-10, 3]] },
+  { id: 'fast', name: '高速コーナー', note: '大きなRのスイーパー',
+    pts: genParam(t => [52 * Math.cos(t), 34 * Math.sin(t) + 9 * Math.sin(2 * t) * Math.sin(t)], 48) },
+  { id: 'hairpin', name: 'ヘアピンコース', note: '直線と小さなRの折り返し',
+    pts: [[0,0],[25,0],[50,0],[62,3],[66,12],[62,21],[50,24],[25,24],[16,27],[12,36],[16,45],[25,48],[50,48],[62,51],[66,60],[62,69],[50,72],[25,72],[0,72],[-12,68],[-18,56],[-18,36],[-18,16],[-12,4]] },
+  { id: 'tech', name: 'テクニカルコース', note: '大小のコーナーが混在', pts: CTRL_PTS },
+  { id: 'eight', name: '8の字コース', note: '左右で曲がる向きが逆',
+    pts: genParam(t => [48 * Math.sin(t), 26 * Math.sin(t) * Math.cos(t)], 48) },
+  { id: 'oval', name: '楕円コース', note: '曲率が一定に近い基本形',
+    pts: genParam(t => [45 * Math.cos(t), 22 * Math.sin(t)], 40) }
+];
 // ===== app =====
-const tr = buildTrack(CTRL_PTS, DS);
+let tr;
 const $ = id => document.getElementById(id);
 const state = { running: true, show: 'both', cam: 'follow', v: 30 / 3.6, Ld: 5, N: 15, R: 100 };
 let pp, mpc, hist, tick, ctrlTick, trailPP, trailMPC;
@@ -395,11 +489,40 @@ function resize() {
   ch.width = Math.round(cr.width * DPR); ch.height = Math.round(cr.height * DPR);
 }
 let bbox;
-{
+function computeBbox() {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (let i = 0; i < tr.n; i++) { x0 = Math.min(x0, tr.x[i]); x1 = Math.max(x1, tr.x[i]); y0 = Math.min(y0, tr.y[i]); y1 = Math.max(y1, tr.y[i]); }
   bbox = { x0: x0 - 5, x1: x1 + 5, y0: y0 - 5, y1: y1 + 5 };
 }
+
+// ---------- course picker ----------
+function courseIcon(pts) {
+  const t = buildTrack(pts, 1.0);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < t.n; i++) { x0 = Math.min(x0, t.x[i]); x1 = Math.max(x1, t.x[i]); y0 = Math.min(y0, t.y[i]); y1 = Math.max(y1, t.y[i]); }
+  const s = Math.min(88 / (x1 - x0), 48 / (y1 - y0));
+  const ox = 50 - (x0 + x1) / 2 * s, oy = 30 + (y0 + y1) / 2 * s;
+  const P = i => `${(ox + t.x[i] * s).toFixed(1)},${(oy - t.y[i] * s).toFixed(1)}`;
+  let d = 'M' + P(0);
+  for (let i = 2; i < t.n; i += 2) d += 'L' + P(i);
+  return `<svg viewBox="0 0 100 60" aria-hidden="true"><path d="${d}Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" opacity=".25"/><path d="${d}Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${P(0).split(',')[0]}" cy="${P(0).split(',')[1]}" r="3.6" fill="var(--pp)"/></svg>`;
+}
+function buildPicker() {
+  $('courses').innerHTML = COURSES.map(c =>
+    `<button class="course" data-course="${c.id}" aria-pressed="false">${courseIcon(c.pts)}<span>${c.name}</span></button>`).join('');
+  document.querySelectorAll('[data-course]').forEach(b => b.onclick = () => setCourse(b.dataset.course));
+}
+function setCourse(id) {
+  const c = COURSES.find(c => c.id === id);
+  state.course = id;
+  tr = buildTrack(c.pts, DS);
+  computeBbox();
+  reset();
+  updateCam(-1);
+  document.querySelectorAll('[data-course]').forEach(b => b.setAttribute('aria-pressed', b.dataset.course === id));
+  $('courseNote').textContent = `${c.name}：${c.note}（1周 約${Math.round(tr.L)} m）`;
+}
+
 let cam = { x: 0, y: 0, s: 5 };
 function updateCam(dt) {
   let tx, ty, ts;
@@ -563,17 +686,17 @@ const deg = r => (r * 180 / Math.PI).toFixed(1);
 function hints() {
   const T = state.Ld / state.v;
   let h;
-  if (T < 0.3) h = ['近すぎる', '目標点がすぐ目の前にあるので、少しのずれにも大きく切り返します。速度を上げると左右にふらつき始めます。'];
-  else if (T > 0.75) h = ['遠すぎる', 'ハンドルは穏やかですが、遠くの点へ近道するのでコーナーの内側をショートカットします。'];
-  else h = ['ちょうどよい', '速度に対して適度な距離です。PPでは「注視距離 ÷ 車速」（いまは ' + T.toFixed(2) + ' 秒）で考えると調整しやすくなります。'];
+  if (T < 0.3) h = ['近すぎる', '目標点が目の前なので、少しのずれにも大きく切り返します。速度を上げるとふらつきます。'];
+  else if (T > 0.75) h = ['遠すぎる', 'ハンドルは穏やかですが、遠くの点へ近道してコーナーの内側をショートカットします。'];
+  else h = ['ちょうどよい', '速度に対して適度な距離です。PPは「Ld ÷ 車速」の注視時間で考えると調整しやすくなります。'];
   $('hintPP').innerHTML = `<b>${h[0]}（注視時間 ${T.toFixed(2)} 秒）</b>${h[1]}`;
   const Tm = state.N * MPC_H;
   let m;
-  if (Tm < 0.6 && state.R >= 20) m = ['予測が短すぎる', '操作を控えたいのに先が見えないので、ずれが育ってから慌てて切ります。揺れたり、コースから外れたりします。'];
-  else if (Tm < 0.6) m = ['予測が短い', 'Rが小さいので目先のずれを素早く消して走れていますが、操舵の変化は細かくなりがちです。'];
-  else if (state.R >= 600) m = ['操作を控えすぎ', 'ハンドルはとても滑らかですが、そのぶん横ずれを許しています。グラフの横ずれを見比べてください。'];
-  else if (state.R <= 5) m = ['ずれを許さない', 'わずかなずれもすぐ消そうとして、細かくハンドルを動かします。操舵量の数字が増えます。'];
-  else m = ['先読みしている', 'カーブに入る前から予測軌跡が曲がり始め、早めにハンドルを切り始めます。予測時間を短くすると違いが分かります。'];
+  if (Tm < 0.6 && state.R >= 20) m = ['予測が短すぎる', '先が見えないのに操作を控えるので、ずれが育ってから慌てて切り、揺れや脱線が起きます。'];
+  else if (Tm < 0.6) m = ['予測が短い', 'Rが小さいので目先のずれは素早く消せますが、操舵は細かくなりがちです。'];
+  else if (state.R >= 600) m = ['操作を控えすぎ', 'ハンドルはとても滑らかですが、そのぶん横ずれを許しています。'];
+  else if (state.R <= 5) m = ['ずれを許さない', 'わずかなずれもすぐ消そうと、細かくハンドルを動かします。'];
+  else m = ['先読みしている', 'カーブの手前から予測軌跡が曲がり、早めにハンドルを切り始めます。'];
   $('hintMPC').innerHTML = `<b>${m[0]}（予測 ${Tm.toFixed(1)} 秒・R ${fmtR(state.R)}）</b>${m[1]}`;
 }
 const fmtR = r => r >= 10 ? Math.round(r).toString() : r.toFixed(1);
@@ -621,8 +744,10 @@ function loop(t) {
 
 readColors();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
-reset(); bind(); resize(); updateCam(-1);
+buildPicker(); resize(); setCourse('s'); bind();
 window.addEventListener('resize', resize);
+if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => resize()); ro.observe(cv.parentElement); ro.observe($('chart').parentElement); }
+window.addEventListener('beforeprint', resize);
 requestAnimationFrame(loop);
 </script>
 </body></html>
