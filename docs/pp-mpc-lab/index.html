@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PP / MPC 経路追従ラボ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1ee; --card:#fafbfa; --ink:#1c2826; --sub:#5d6b68; --line:#d8dfdb; --road:#dfe5e1; --roadEdge:#b9c4bf;
+  --pp:#e5603a; --mpc:#1f9e86; --ref:#2b3a37; --chip:#e6ebe8;
+  --sans:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141a19; --card:#1c2422; --ink:#e4ebe8; --sub:#93a29e; --line:#2c3735; --road:#27312f; --roadEdge:#3c4946;
+    --pp:#f07a55; --mpc:#3cc4a8; --ref:#c9d4d0; --chip:#26302e;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141a19; --card:#1c2422; --ink:#e4ebe8; --sub:#93a29e; --line:#2c3735; --road:#27312f; --roadEdge:#3c4946;
+  --pp:#f07a55; --mpc:#3cc4a8; --ref:#c9d4d0; --chip:#26302e;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:10px 16px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--ref);display:grid;place-items:center;flex:none}
+header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.02em}
+header p{margin:0;font-size:12px;color:var(--sub)}
+main{max-width:1180px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:960px){
+  main{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start;padding:20px}
+  .stage{grid-row:span 3;position:sticky;top:76px}
+}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.card-h{padding:14px 16px 10px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid var(--line)}
+.card-h h2{margin:0;font-size:18px;line-height:1.3}
+.card-h small{display:block;color:var(--sub);font-size:12px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--sub)}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.pp .dot,.dot.pp{background:var(--pp)} .mpc .dot,.dot.mpc{background:var(--mpc)}
+.canvas-wrap{position:relative;background:var(--bg)}
+#track{display:block;width:100%;aspect-ratio:4/5;touch-action:pan-y}
+@media (min-width:960px){#track{aspect-ratio:auto;height:min(68vh,640px)}}
+.hud{position:absolute;right:12px;bottom:12px;background:var(--ref);color:var(--bg);border-radius:14px;padding:8px 14px;font-family:var(--mono)}
+.hud b{font-size:26px;font-weight:500} .hud span{font-size:12px;opacity:.8;margin-left:4px}
+.legend{position:absolute;left:12px;top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:12px;display:grid;gap:2px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid var(--line);align-items:center}
+.seg{display:inline-flex;background:var(--chip);border-radius:10px;padding:3px}
+.seg button,.btn{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink);padding:6px 11px;border-radius:8px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:500}
+.btn{background:var(--ref);color:var(--bg);font-weight:500}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--mpc);outline-offset:2px}
+.ctl{padding:12px 16px 16px}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:2px}
+.ctl output{font-family:var(--mono);font-size:15px}
+input[type=range]{width:100%;height:30px;accent-color:var(--ref)}
+.pp input[type=range]{accent-color:var(--pp)} .mpc input[type=range]{accent-color:var(--mpc)}
+.ends{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:-4px;margin-bottom:10px}
+.body{padding:12px 16px 4px;font-size:14px}
+.body p{margin:0 0 10px;max-width:60ch}
+.formula{font-family:var(--mono);font-size:14px;background:var(--chip);border-radius:10px;padding:8px 12px;margin:0 0 10px;overflow-x:auto;white-space:nowrap}
+.hint{margin:0 16px 16px;padding:10px 12px;border-radius:12px;font-size:14px;border-left:4px solid}
+.pp .hint{border-color:var(--pp);background:color-mix(in srgb,var(--pp) 9%,transparent)}
+.mpc .hint{border-color:var(--mpc);background:color-mix(in srgb,var(--mpc) 9%,transparent)}
+.hint b{display:block;font-size:13px}
+.gauges{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+.gauge{padding:12px 10px;display:flex;align-items:center;gap:8px;min-width:0}
+.gauge+.gauge{border-left:1px solid var(--line)}
+.gauge canvas{width:68px;height:46px;flex:none}
+.gauge .v{font-family:var(--mono);font-size:22px;line-height:1.1}
+.gauge .v small{font-size:12px;color:var(--sub)}
+.gauge .e{font-size:11px;color:var(--sub);font-family:var(--mono);white-space:nowrap}
+#chart{display:block;width:100%;height:220px}
+.stats{display:grid;grid-template-columns:1fr;font-size:12px;color:var(--sub);padding:8px 16px 14px;gap:4px 12px}
+.stats div{font-family:var(--mono)}
+footer{max-width:1180px;margin:0 auto;padding:4px 20px 28px;font-size:12px;color:var(--sub)}
+footer p{max-width:72ch;margin:0}
+.dim{opacity:.45}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 22 22"><path d="M3 17 C7 4, 15 4, 19 13" fill="none" stroke="var(--bg)" stroke-width="2" stroke-dasharray="3 2.5"/><circle cx="19" cy="13" r="2.4" fill="var(--pp)"/><circle cx="3" cy="17" r="2.4" fill="var(--mpc)"/></svg>
+  </div>
+  <div>
+    <h1>PP / MPC 経路追従ラボ</h1>
+    <p>パラメータを動かして、ハンドルの切り方の違いを見る</p>
+  </div>
+</header>
+
+<main>
+  <section class="card stage" aria-label="走行シミュレーション">
+    <div class="canvas-wrap">
+      <canvas id="track" aria-label="上から見たコースと2台のカート"></canvas>
+      <div class="legend">
+        <span class="tag pp"><i class="dot"></i>Pure Pursuit</span>
+        <span class="tag mpc"><i class="dot"></i>MPC</span>
+      </div>
+      <div class="hud"><b id="hudV">30</b><span>km/h</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="play">一時停止</button>
+      <button class="btn ghost" id="reset">最初から</button>
+      <div class="seg" role="group" aria-label="表示する車">
+        <button data-show="both" aria-pressed="true">両方</button>
+        <button data-show="pp" aria-pressed="false">PP</button>
+        <button data-show="mpc" aria-pressed="false">MPC</button>
+      </div>
+      <div class="seg" role="group" aria-label="カメラ">
+        <button data-cam="follow" aria-pressed="true">追従</button>
+        <button data-cam="all" aria-pressed="false">コース全体</button>
+      </div>
+    </div>
+    <div class="ctl" style="padding-top:0">
+      <label for="spd">車速 <output id="spdO">30 km/h</output></label>
+      <input id="spd" type="range" min="15" max="45" step="1" value="30">
+      <div class="ends"><span>ゆっくり</span><span>速い（差が出やすい）</span></div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="ハンドルの動き">
+    <div class="card-h"><div><small>タイヤ切れ角と横ずれ</small><h2>ハンドルの動き</h2></div><span class="tag">直近12秒</span></div>
+    <div class="gauges">
+      <div class="gauge pp" id="gPP"><canvas id="gaugePP" width="168" height="112"></canvas><div><span class="tag pp"><i class="dot"></i>PP</span><div class="v" id="vPP">0.0<small>°</small></div><div class="e" id="ePP">ずれ 0.00 m</div></div></div>
+      <div class="gauge mpc" id="gMPC"><canvas id="gaugeMPC" width="168" height="112"></canvas><div><span class="tag mpc"><i class="dot"></i>MPC</span><div class="v" id="vMPC">0.0<small>°</small></div><div class="e" id="eMPC">ずれ 0.00 m</div></div></div>
+    </div>
+    <canvas id="chart" aria-label="切れ角と横ずれの時系列グラフ"></canvas>
+    <div class="stats">
+      <div id="sPP">PP　平均ずれ –</div>
+      <div id="sMPC">MPC 平均ずれ –</div>
+      <div style="font-family:var(--sans)">平均ずれと操舵の忙しさは、パラメータを変えた時点から集計し直します。</div>
+    </div>
+  </section>
+
+  <section class="card pp" aria-label="Pure Pursuit">
+    <div class="card-h"><div><small>幾何学で決める</small><h2>Pure Pursuit</h2></div><span class="tag"><i class="dot pp"></i>オレンジの車</span></div>
+    <div class="body">
+      <p>コース上で「注視距離 Ld」だけ先の点を選び、その点を通る円弧に乗るようにハンドルを切ります。画面の点線の円が注視距離、細い線が目標点です。</p>
+      <div class="formula">δ = atan( 2·L·sin α / Ld )</div>
+    </div>
+    <div class="ctl">
+      <label for="ld">注視距離 Ld <output id="ldO">5.0 m</output></label>
+      <input id="ld" type="range" min="1.5" max="12" step="0.5" value="5">
+      <div class="ends"><span>近く（機敏）</span><span>遠く（穏やか）</span></div>
+    </div>
+    <p class="hint" id="hintPP"></p>
+  </section>
+
+  <section class="card mpc" aria-label="MPC">
+    <div class="card-h"><div><small>予測して最適化する</small><h2>MPC（モデル予測制御）</h2></div><span class="tag"><i class="dot mpc"></i>緑の車</span></div>
+    <div class="body">
+      <p>車の動きのモデルで数秒先までを予測し、「コースからのずれ」と「ハンドル操作の大きさ」の合計が最小になる操作の列を毎回計算します。使うのは最初の一手だけで、次の周期でまた計算し直します。画面の点列が予測した軌跡です。</p>
+      <div class="formula">min Σ ( Q·ずれ² + R·Δ操舵² )</div>
+    </div>
+    <div class="ctl">
+      <label for="hz">予測時間 <output id="hzO">1.5 s</output></label>
+      <input id="hz" type="range" min="3" max="30" step="1" value="15">
+      <div class="ends"><span>目先だけ</span><span>先まで見る</span></div>
+      <label for="rw">操舵の重み R <output id="rwO">100</output></label>
+      <input id="rw" type="range" min="0" max="3.5" step="0.1" value="2">
+      <div class="ends"><span>ずれを許さない</span><span>操作を控える</span></div>
+    </div>
+    <p class="hint" id="hintMPC"></p>
+  </section>
+</main>
+
+<footer>
+  <p>モデルの前提：運動学的二輪モデル（ホイールベース 1.05 m）、ステアリング一次遅れ 0.12 s、制御周期 50 ms、車速一定。MPCは制約なしの線形MPC（予測刻み 0.1 s、ステア遅れ込みのモデル）を毎周期、最小二乗で解いています。教材向けの簡易モデルで、実車のタイヤ横すべりや入力制約は入れていません。</p>
+</footer>
+<script>
+// ===== simulation core =====
+const WB = 1.05;          // wheelbase [m]
+const DMAX = 0.45;        // max tire angle [rad]
+const TAU = 0.12;         // steering actuator lag [s]
+const DT = 1 / 120;       // plant step [s]
+const CTRL_DT = 0.05;     // controller period [s]
+const MPC_H = 0.1;        // MPC prediction step [s]
+const DS = 0.25;          // path resolution [m]
+
+const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+const CTRL_PTS = [
+  [0, 0], [38, 0], [56, 4], [64, 18], [56, 32], [42, 36], [34, 47], [38, 61],
+  [54, 66], [66, 78], [62, 93], [44, 99], [20, 97], [6, 87], [2, 70], [10, 56],
+  [4, 42], [-10, 32], [-13, 14]
+];
+
+function buildTrack(ctrl, ds) {
+  const n = ctrl.length, poly = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = ctrl[(i - 1 + n) % n], p1 = ctrl[i], p2 = ctrl[(i + 1) % n], p3 = ctrl[(i + 2) % n];
+    for (let k = 0; k < 40; k++) {
+      const t = k / 40, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      poly.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  poly.push(poly[0]);
+  const cum = [0];
+  for (let i = 1; i < poly.length; i++) cum.push(cum[i - 1] + Math.hypot(poly[i][0] - poly[i - 1][0], poly[i][1] - poly[i - 1][1]));
+  const L = cum[cum.length - 1], m = Math.floor(L / ds);
+  const x = [], y = [];
+  let j = 0;
+  for (let i = 0; i < m; i++) {
+    const s = i * L / m;
+    while (cum[j + 1] < s) j++;
+    const r = (s - cum[j]) / (cum[j + 1] - cum[j]);
+    x.push(poly[j][0] + r * (poly[j + 1][0] - poly[j][0]));
+    y.push(poly[j][1] + r * (poly[j + 1][1] - poly[j][1]));
+  }
+  const step = L / m, psi = [], kr = [];
+  for (let i = 0; i < m; i++) {
+    const a = (i + 1) % m;
+    psi.push(Math.atan2(y[a] - y[i], x[a] - x[i]));
+  }
+  for (let i = 0; i < m; i++) kr.push(wrap(psi[i] - psi[(i - 1 + m) % m]) / step);
+  const k = kr.map((_, i) => { let s = 0; for (let d = -4; d <= 4; d++) s += kr[(i + d + m) % m]; return s / 9; });
+  return { x, y, psi, k, n: m, L, ds: step };
+}
+
+function project(tr, px, py, hint) {
+  let best = -1, bd = Infinity;
+  const scan = hint < 0 ? tr.n : 240;
+  const start = hint < 0 ? 0 : hint - 40;
+  for (let c = 0; c < scan; c++) {
+    const i = ((start + c) % tr.n + tr.n) % tr.n;
+    const d = (px - tr.x[i]) ** 2 + (py - tr.y[i]) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+
+function makeCar(tr) {
+  return { x: tr.x[0], y: tr.y[0], yaw: tr.psi[0], delta: 0, cmd: 0, idx: 0, ey: 0, epsi: 0, dist: 0, pred: null, target: -1 };
+}
+
+function updateErrors(car, tr) {
+  car.idx = project(tr, car.x, car.y, car.idx);
+  const i = car.idx, s = Math.sin(tr.psi[i]), c = Math.cos(tr.psi[i]);
+  car.ey = -(car.x - tr.x[i]) * s + (car.y - tr.y[i]) * c;
+  car.epsi = wrap(car.yaw - tr.psi[i]);
+}
+
+function ppControl(car, tr, Ld) {
+  let j = car.idx;
+  for (let c = 0; c < tr.n; c++) {
+    j = (car.idx + c) % tr.n;
+    if (Math.hypot(tr.x[j] - car.x, tr.y[j] - car.y) >= Ld) break;
+  }
+  const alpha = wrap(Math.atan2(tr.y[j] - car.y, tr.x[j] - car.x) - car.yaw);
+  car.target = j;
+  car.alpha = alpha;
+  return Math.atan2(2 * WB * Math.sin(alpha), Ld);
+}
+
+// Linear MPC on path-error dynamics.
+// state: ey, epsi, c (actual curvature, lags behind command), cc (curvature command)
+// input: u = change of curvature command per step
+function mpcControl(car, tr, v, N, R) {
+  const qy = 1.0, qpsi = 0.6, h = MPC_H, vh = v * h, a = Math.exp(-h / TAU);
+  const kap = [];
+  for (let k = 0; k < N; k++) kap.push(tr.k[(car.idx + Math.round(vh * k / tr.ds)) % tr.n]);
+  const S = 4;
+  const sim = U => {
+    const X = new Float64Array(S * N);
+    let ey = car.ey, ep = car.epsi, c = Math.tan(car.delta) / WB, cc = Math.tan(car.cmd) / WB;
+    for (let k = 0; k < N; k++) {
+      cc += U[k];
+      c = a * c + (1 - a) * cc;
+      ey += vh * ep;
+      ep += vh * (c - kap[k]);
+      X[S * k] = ey; X[S * k + 1] = ep; X[S * k + 2] = c; X[S * k + 3] = cc;
+    }
+    return X;
+  };
+  const base = sim(new Float64Array(N));
+  const G = [];
+  for (let j = 0; j < N; j++) {
+    const e = new Float64Array(N); e[j] = 1;
+    const X = sim(e), col = new Float64Array(S * N);
+    for (let r = 0; r < S * N; r++) col[r] = X[r] - base[r];
+    G.push(col);
+  }
+  const q = r => (r % S === 0 ? qy : r % S === 1 ? qpsi : 0);
+  const H = [], g = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    H.push(new Float64Array(N));
+    for (let j = 0; j <= i; j++) {
+      let s = 0;
+      for (let r = 0; r < S * N; r++) s += G[i][r] * q(r) * G[j][r];
+      H[i][j] = s;
+    }
+    H[i][i] += R;
+    let s = 0;
+    for (let r = 0; r < S * N; r++) s += G[i][r] * q(r) * base[r];
+    g[i] = -s;
+  }
+  for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) H[i][j] = H[j][i];
+  for (let p = 0; p < N; p++) {
+    for (let r = p + 1; r < N; r++) {
+      const f = H[r][p] / H[p][p];
+      for (let c = p; c < N; c++) H[r][c] -= f * H[p][c];
+      g[r] -= f * g[p];
+    }
+  }
+  const U = new Float64Array(N);
+  for (let p = N - 1; p >= 0; p--) {
+    let s = g[p];
+    for (let c = p + 1; c < N; c++) s -= H[p][c] * U[c];
+    U[p] = s / H[p][p];
+  }
+  const X = sim(U), pred = [];
+  for (let k = 0; k < N; k++) {
+    const i = (car.idx + Math.round(vh * (k + 1) / tr.ds)) % tr.n, ey = X[S * k];
+    pred.push([tr.x[i] - ey * Math.sin(tr.psi[i]), tr.y[i] + ey * Math.cos(tr.psi[i])]);
+  }
+  car.pred = pred;
+  return Math.atan(WB * X[3]);
+}
+
+function plantStep(car, v) {
+  car.delta += (car.cmd - car.delta) * DT / TAU;
+  car.delta = clamp(car.delta, -DMAX, DMAX);
+  car.x += v * Math.cos(car.yaw) * DT;
+  car.y += v * Math.sin(car.yaw) * DT;
+  car.yaw = wrap(car.yaw + v * Math.tan(car.delta) / WB * DT);
+  car.dist += v * DT;
+}
+// ===== app =====
+const tr = buildTrack(CTRL_PTS, DS);
+const $ = id => document.getElementById(id);
+const state = { running: true, show: 'both', cam: 'follow', v: 30 / 3.6, Ld: 5, N: 15, R: 100 };
+let pp, mpc, hist, tick, ctrlTick, trailPP, trailMPC;
+
+function reset() {
+  pp = makeCar(tr); mpc = makeCar(tr);
+  pp.idx = project(tr, pp.x, pp.y, -1); mpc.idx = pp.idx;
+  hist = []; tick = 0; ctrlTick = 0; trailPP = []; trailMPC = [];
+  pp.acc = { e: 0, n: 0, tv: 0, last: 0 }; mpc.acc = { e: 0, n: 0, tv: 0, last: 0 };
+  control();
+}
+
+function control() {
+  updateErrors(pp, tr); updateErrors(mpc, tr);
+  pp.cmd = clamp(ppControl(pp, tr, state.Ld), -DMAX, DMAX);
+  mpc.cmd = clamp(mpcControl(mpc, tr, state.v, state.N, state.R), -DMAX, DMAX);
+  hist.push([pp.delta, mpc.delta, pp.ey, mpc.ey]);
+  if (hist.length > 240) hist.shift();
+  for (const c of [pp, mpc]) {
+    c.acc.e += Math.abs(c.ey); c.acc.n++; c.acc.tv += Math.abs(c.delta - c.acc.last); c.acc.last = c.delta;
+  }
+  if (ctrlTick % 2 === 0) {
+    trailPP.push([pp.x, pp.y]); trailMPC.push([mpc.x, mpc.y]);
+    if (trailPP.length > 120) { trailPP.shift(); trailMPC.shift(); }
+  }
+  ctrlTick++;
+}
+
+function stepSim() {
+  plantStep(pp, state.v); plantStep(mpc, state.v);
+  tick++;
+  if (tick % Math.round(CTRL_DT / DT) === 0) control();
+  // recover if a car leaves far from the track (e.g. extreme params)
+  for (const c of [pp, mpc]) {
+    if (Math.abs(c.ey) > 12) {
+      const i = c.idx; c.x = tr.x[i]; c.y = tr.y[i]; c.yaw = tr.psi[i]; c.delta = 0; c.cmd = 0;
+    }
+  }
+}
+
+// ---------- drawing ----------
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let COL = {};
+const readColors = () => { COL = { pp: css('--pp'), mpc: css('--mpc'), ref: css('--ref'), road: css('--road'), edge: css('--roadEdge'), bg: css('--bg'), sub: css('--sub'), line: css('--line'), ink: css('--ink'), card: css('--card') }; };
+
+const cv = $('track'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  const ch = $('chart'), cr = ch.getBoundingClientRect();
+  ch.width = Math.round(cr.width * DPR); ch.height = Math.round(cr.height * DPR);
+}
+let bbox;
+{
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < tr.n; i++) { x0 = Math.min(x0, tr.x[i]); x1 = Math.max(x1, tr.x[i]); y0 = Math.min(y0, tr.y[i]); y1 = Math.max(y1, tr.y[i]); }
+  bbox = { x0: x0 - 5, x1: x1 + 5, y0: y0 - 5, y1: y1 + 5 };
+}
+let cam = { x: 0, y: 0, s: 5 };
+function updateCam(dt) {
+  let tx, ty, ts;
+  if (state.cam === 'all') {
+    tx = (bbox.x0 + bbox.x1) / 2; ty = (bbox.y0 + bbox.y1) / 2;
+    ts = Math.min(W / (bbox.x1 - bbox.x0), H / (bbox.y1 - bbox.y0));
+  } else {
+    const cars = state.show === 'pp' ? [pp] : state.show === 'mpc' ? [mpc] : [pp, mpc];
+    tx = cars.reduce((a, c) => a + c.x + Math.cos(c.yaw) * 3, 0) / cars.length;
+    ty = cars.reduce((a, c) => a + c.y + Math.sin(c.yaw) * 3, 0) / cars.length;
+    ts = Math.min(W, H) / 22;
+  }
+  const k = dt < 0 ? 1 : 1 - Math.exp(-dt * 6);
+  cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k; cam.s += (ts - cam.s) * k;
+}
+const SX = x => W / 2 + (x - cam.x) * cam.s;
+const SY = y => H / 2 - (y - cam.y) * cam.s;
+
+function pathLoop(off) {
+  ctx.beginPath();
+  for (let i = 0; i <= tr.n; i++) {
+    const j = i % tr.n, nx = -Math.sin(tr.psi[j]) * off, ny = Math.cos(tr.psi[j]) * off;
+    const X = SX(tr.x[j] + nx), Y = SY(tr.y[j] + ny);
+    i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+  }
+}
+
+function drawCar(c, color, alpha) {
+  const size = Math.max(1, 9 / cam.s);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(SX(c.x), SY(c.y));
+  ctx.rotate(-c.yaw);
+  ctx.scale(cam.s * size, cam.s * size);
+  const wheel = (x, y, a) => { ctx.save(); ctx.translate(x, y); ctx.rotate(-a); ctx.fillStyle = COL.ref; ctx.fillRect(-0.17, -0.09, 0.34, 0.18); ctx.restore(); };
+  wheel(0, 0.55, 0); wheel(0, -0.55, 0);
+  wheel(WB, 0.55, c.delta); wheel(WB, -0.55, c.delta);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(-0.35, -0.42, 1.75, 0.84, 0.25); else ctx.rect(-0.35, -0.42, 1.75, 0.84);
+  ctx.fill();
+  ctx.fillStyle = COL.card;
+  ctx.beginPath(); ctx.arc(0.25, 0, 0.17, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawTrail(t, color) {
+  if (t.length < 2) return;
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); t.forEach((p, i) => i ? ctx.lineTo(SX(p[0]), SY(p[1])) : ctx.moveTo(SX(p[0]), SY(p[1]))); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawPPOverlay(c) {
+  const j = c.target; if (j < 0) return;
+  ctx.strokeStyle = COL.pp; ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.arc(SX(c.x), SY(c.y), state.Ld * cam.s, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(SX(c.x), SY(c.y)); ctx.lineTo(SX(tr.x[j]), SY(tr.y[j])); ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1;
+  // planned arc
+  const k = 2 * Math.sin(c.alpha || 0) / state.Ld;
+  let x = c.x, y = c.y, h = c.yaw;
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(SX(x), SY(y));
+  for (let s = 0; s < state.Ld * 1.1; s += 0.2) { x += Math.cos(h) * 0.2; y += Math.sin(h) * 0.2; h += k * 0.2; ctx.lineTo(SX(x), SY(y)); }
+  ctx.stroke();
+  ctx.fillStyle = COL.pp; ctx.strokeStyle = COL.card; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(SX(tr.x[j]), SY(tr.y[j]), 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+}
+
+function drawMPCOverlay(c) {
+  if (!c.pred) return;
+  ctx.strokeStyle = COL.mpc; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(SX(c.x), SY(c.y));
+  c.pred.forEach(p => ctx.lineTo(SX(p[0]), SY(p[1]))); ctx.stroke();
+  ctx.fillStyle = COL.card; ctx.lineWidth = 1.5;
+  const r = Math.max(2, Math.min(4, cam.s * 0.25));
+  c.pred.forEach((p, i) => { ctx.beginPath(); ctx.arc(SX(p[0]), SY(p[1]), i === c.pred.length - 1 ? r + 2 : r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
+}
+
+function drawTrack() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
+  // grid (10 m)
+  ctx.strokeStyle = COL.line; ctx.lineWidth = 1;
+  const g = 10, gx0 = Math.floor((cam.x - W / 2 / cam.s) / g) * g, gy0 = Math.floor((cam.y - H / 2 / cam.s) / g) * g;
+  ctx.beginPath();
+  for (let x = gx0; x < cam.x + W / 2 / cam.s; x += g) { ctx.moveTo(SX(x), 0); ctx.lineTo(SX(x), H); }
+  for (let y = gy0; y < cam.y + H / 2 / cam.s; y += g) { ctx.moveTo(0, SY(y)); ctx.lineTo(W, SY(y)); }
+  ctx.stroke();
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  pathLoop(0); ctx.strokeStyle = COL.edge; ctx.lineWidth = 4.6 * cam.s; ctx.stroke();
+  pathLoop(0); ctx.strokeStyle = COL.road; ctx.lineWidth = 4.2 * cam.s; ctx.stroke();
+  pathLoop(0); ctx.strokeStyle = COL.ref; ctx.lineWidth = 1.2; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]);
+  // start line
+  const nx = -Math.sin(tr.psi[0]) * 2.1, ny = Math.cos(tr.psi[0]) * 2.1;
+  ctx.strokeStyle = COL.ref; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(SX(tr.x[0] + nx), SY(tr.y[0] + ny)); ctx.lineTo(SX(tr.x[0] - nx), SY(tr.y[0] - ny)); ctx.stroke();
+  const sp = state.show !== 'mpc', sm = state.show !== 'pp';
+  if (sp) drawTrail(trailPP, COL.pp);
+  if (sm) drawTrail(trailMPC, COL.mpc);
+  if (sm) drawMPCOverlay(mpc);
+  if (sp) drawPPOverlay(pp);
+  if (sm) drawCar(mpc, COL.mpc, 1);
+  if (sp) drawCar(pp, COL.pp, sm ? 0.75 : 1);
+}
+
+function drawGauge(id, delta, color) {
+  const c = $(id), g = c.getContext('2d'), w = c.width, h = c.height;
+  g.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h - 10, r = h - 22, max = 15 * Math.PI / 180;
+  g.lineWidth = 10; g.lineCap = 'round';
+  g.strokeStyle = COL.line; g.beginPath(); g.arc(cx, cy, r, Math.PI, 2 * Math.PI); g.stroke();
+  const d = clamp(delta, -max, max) / max * (Math.PI / 2);
+  // positive delta = left turn -> needle to the left
+  const a = -Math.PI / 2 - d;
+  g.strokeStyle = color;
+  g.beginPath(); d >= 0 ? g.arc(cx, cy, r, a, -Math.PI / 2) : g.arc(cx, cy, r, -Math.PI / 2, a); g.stroke();
+  g.lineWidth = 4; g.strokeStyle = COL.ink;
+  g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * (r - 4), cy + Math.sin(a) * (r - 4)); g.stroke();
+  g.fillStyle = COL.ink; g.beginPath(); g.arc(cx, cy, 6, 0, Math.PI * 2); g.fill();
+  g.font = '500 18px ' + css('--mono'); g.fillStyle = COL.sub; g.textAlign = 'center';
+  g.fillText('左', 14, cy); g.fillText('右', w - 14, cy);
+}
+
+function drawChart() {
+  const c = $('chart'), g = c.getContext('2d');
+  const w = c.width / DPR, h = c.height / DPR;
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.clearRect(0, 0, w, h);
+  const pad = 54, half = (h - 16) / 2;
+  const panels = [
+    { y0: 8, label: '切れ角', unit: '°', lim: 15, idx: [0, 1], f: v => v * 180 / Math.PI },
+    { y0: 8 + half + 8, label: '横ずれ', unit: 'm', lim: 1.5, idx: [2, 3], f: v => v }
+  ];
+  g.font = '11px ' + css('--sans');
+  for (const p of panels) {
+    const ph = half - 8, mid = p.y0 + ph / 2;
+    g.strokeStyle = COL.line; g.lineWidth = 1;
+    g.strokeRect(pad, p.y0, w - pad - 12, ph);
+    g.beginPath(); g.moveTo(pad, mid); g.lineTo(w - 12, mid); g.stroke();
+    g.fillStyle = COL.sub; g.textAlign = 'right';
+    g.fillText(p.label, pad - 6, mid - 2); g.fillText(`±${p.lim}${p.unit}`, pad - 6, mid + 12);
+    const cols = [COL.pp, COL.mpc], vis = [state.show !== 'mpc', state.show !== 'pp'];
+    g.save(); g.beginPath(); g.rect(pad, p.y0, w - pad - 12, ph); g.clip();
+    p.idx.forEach((k, s) => {
+      if (!vis[s]) return;
+      g.strokeStyle = cols[s]; g.lineWidth = 2; g.beginPath();
+      hist.forEach((row, i) => {
+        const X = pad + (w - pad - 12) * (i + 240 - hist.length) / 239;
+        const Y = mid - clamp(p.f(row[k]) / p.lim, -1.1, 1.1) * ph / 2;
+        i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+      });
+      g.stroke();
+    });
+    g.restore();
+  }
+}
+
+// ---------- UI ----------
+const deg = r => (r * 180 / Math.PI).toFixed(1);
+function hints() {
+  const T = state.Ld / state.v;
+  let h;
+  if (T < 0.3) h = ['近すぎる', '目標点がすぐ目の前にあるので、少しのずれにも大きく切り返します。速度を上げると左右にふらつき始めます。'];
+  else if (T > 0.75) h = ['遠すぎる', 'ハンドルは穏やかですが、遠くの点へ近道するのでコーナーの内側をショートカットします。'];
+  else h = ['ちょうどよい', '速度に対して適度な距離です。PPでは「注視距離 ÷ 車速」（いまは ' + T.toFixed(2) + ' 秒）で考えると調整しやすくなります。'];
+  $('hintPP').innerHTML = `<b>${h[0]}（注視時間 ${T.toFixed(2)} 秒）</b>${h[1]}`;
+  const Tm = state.N * MPC_H;
+  let m;
+  if (Tm < 0.6 && state.R >= 20) m = ['予測が短すぎる', '操作を控えたいのに先が見えないので、ずれが育ってから慌てて切ります。揺れたり、コースから外れたりします。'];
+  else if (Tm < 0.6) m = ['予測が短い', 'Rが小さいので目先のずれを素早く消して走れていますが、操舵の変化は細かくなりがちです。'];
+  else if (state.R >= 600) m = ['操作を控えすぎ', 'ハンドルはとても滑らかですが、そのぶん横ずれを許しています。グラフの横ずれを見比べてください。'];
+  else if (state.R <= 5) m = ['ずれを許さない', 'わずかなずれもすぐ消そうとして、細かくハンドルを動かします。操舵量の数字が増えます。'];
+  else m = ['先読みしている', 'カーブに入る前から予測軌跡が曲がり始め、早めにハンドルを切り始めます。予測時間を短くすると違いが分かります。'];
+  $('hintMPC').innerHTML = `<b>${m[0]}（予測 ${Tm.toFixed(1)} 秒・R ${fmtR(state.R)}）</b>${m[1]}`;
+}
+const fmtR = r => r >= 10 ? Math.round(r).toString() : r.toFixed(1);
+
+function bind() {
+  const upd = () => {
+    state.v = +$('spd').value / 3.6; $('spdO').textContent = $('spd').value + ' km/h'; $('hudV').textContent = $('spd').value;
+    state.Ld = +$('ld').value; $('ldO').textContent = state.Ld.toFixed(1) + ' m';
+    state.N = +$('hz').value; $('hzO').textContent = (state.N * MPC_H).toFixed(1) + ' s';
+    state.R = Math.pow(10, +$('rw').value); $('rwO').textContent = fmtR(state.R);
+    hints();
+    if (pp) for (const c of [pp, mpc]) c.acc = { e: 0, n: 0, tv: 0, last: c.delta };
+  };
+  ['spd', 'ld', 'hz', 'rw'].forEach(id => $(id).addEventListener('input', upd));
+  upd();
+  $('play').onclick = () => { state.running = !state.running; $('play').textContent = state.running ? '一時停止' : '再生'; };
+  $('reset').onclick = () => { reset(); updateCam(-1); };
+  document.querySelectorAll('[data-show]').forEach(b => b.onclick = () => {
+    state.show = b.dataset.show;
+    document.querySelectorAll('[data-show]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('gPP').classList.toggle('dim', state.show === 'mpc'); $('gMPC').classList.toggle('dim', state.show === 'pp');
+  });
+  document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => {
+    state.cam = b.dataset.cam;
+    document.querySelectorAll('[data-cam]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  });
+}
+
+let last = 0, acc = 0, frame = 0;
+function loop(t) {
+  const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+  if (state.running) { acc += dt; while (acc >= DT) { stepSim(); acc -= DT; } }
+  updateCam(dt);
+  drawTrack();
+  drawGauge('gaugePP', pp.delta, COL.pp); drawGauge('gaugeMPC', mpc.delta, COL.mpc);
+  drawChart();
+  if (frame++ % 6 === 0) {
+    $('vPP').innerHTML = deg(pp.delta) + '<small>°</small>'; $('vMPC').innerHTML = deg(mpc.delta) + '<small>°</small>';
+    $('ePP').textContent = 'ずれ ' + pp.ey.toFixed(2) + ' m'; $('eMPC').textContent = 'ずれ ' + mpc.ey.toFixed(2) + ' m';
+    const st = (c, n) => `${n} 平均ずれ ${(c.acc.e / Math.max(1, c.acc.n)).toFixed(2)} m / 操舵の忙しさ ${(c.acc.tv * 180 / Math.PI / Math.max(CTRL_DT, c.acc.n * CTRL_DT)).toFixed(1)}°/s`;
+    $('sPP').textContent = st(pp, 'PP　'); $('sMPC').textContent = st(mpc, 'MPC');
+  }
+  requestAnimationFrame(loop);
+}
+
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+reset(); bind(); resize(); updateCam(-1);
+window.addEventListener('resize', resize);
+requestAnimationFrame(loop);
+</script>
+</body></html>
